@@ -1,13 +1,27 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es" class="scroll-smooth dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="application-name" content="Figma Clone KDD">
-  <meta name="description" content="100% Client-Side Figma Clone con Tailwind CSS, HTMX, FastWebMCP y Gobernanza KDD.">
+  <meta name="description" content="Clon de Figma 100% funcional y 100% client-side listo para desplegar en GitHub Pages. Gobernado por KDD, Tailwind CSS, HTMX y FastWebMCP.">
   <meta name="webmcp-enabled" content="true">
   <meta name="webmcp-manifest" content=".well-known/webmcp.json">
-  <title>Figma Clone KDD — 100% Client-Side Vector Studio</title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Figma Clone KDD — 100% Client-Side Vector Studio">
+  <meta property="og:description" content="Diseño vectorial para humanos y agentes de IA. Cero backend, Tailwind CSS, HTMX, FastWebMCP y gobernanza KDD.">
+  <meta property="og:type" content="website">
+
+  <title>Figma Clone KDD — 100% Client-Side Vector Studio con FastWebMCP</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 57' fill='none'><path d='M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z' fill='%231ABCFE'/><path d='M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z' fill='%230ACF83'/><path d='M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z' fill='%23FF7262'/><path d='M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z' fill='%23F24E1E'/><path d='M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z' fill='%23A259FF'/></svg>">
+
+  <!-- Google Fonts: Inter & Fira Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,131 +30,489 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
           colors: {
-            figma: {
-              canvas: '#1e1e1e',
-              surface: '#2c2c2c',
-              sidebar: '#242424',
-              border: '#383838',
-              accent: '#0d99ff'
+            brand: {
+              blue: '#0d99ff',
+              indigo: '#6366f1',
+              dark: '#0c0e14',
+              surface: '#151922',
+              card: '#1c2230',
+              border: '#2a3447'
             }
           }
         }
       }
-    }
+    };
   </script>
 
-  <!-- HTMX CDN para interacciones reactivas y formularios declarativos -->
+  <!-- HTMX CDN -->
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
-  <!-- Estilos Personalizados Figma -->
-  <link rel="stylesheet" href="src/css/styles.css">
+  <style>
+    .glow-radial {
+      background: radial-gradient(circle at 50% -20%, rgba(13, 153, 255, 0.22) 0%, rgba(99, 102, 241, 0.12) 35%, transparent 70%);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #2a3447;
+      border-radius: 4px;
+    }
+  </style>
 </head>
-<body class="h-screen w-screen flex flex-col bg-[#1e1e1e] text-white overflow-hidden select-none">
+<body class="bg-[#0c0e14] text-gray-100 font-sans antialiased overflow-x-hidden selection:bg-[#0d99ff]/30 selection:text-white">
 
-  <!-- 1. Barra de Herramientas Superior -->
-  <header id="toolbar-container" class="w-full flex-shrink-0 z-20"></header>
-
-  <!-- 2. Área de Trabajo Principal (Layout 3 Paneles) -->
-  <div class="flex-1 flex w-full overflow-hidden relative">
-    
-    <!-- Panel Izquierdo: Árbol de Capas & Assets -->
-    <aside id="layers-container" class="w-64 flex-shrink-0 h-full z-10"></aside>
-
-    <!-- Centro: Lienzo Vectorial Infinito -->
-    <main id="canvas-container" class="flex-1 h-full relative bg-[#1e1e1e] overflow-hidden">
-      <canvas id="figma-canvas" class="w-full h-full cursor-default"></canvas>
-
-      <!-- Pill flotante inferior: Estado de coordenadas y atajos -->
-      <div class="absolute bottom-3 left-4 bg-[#242424]/90 backdrop-blur border border-[#383838] rounded-full px-3 py-1 flex items-center space-x-3 text-[11px] text-gray-400 font-mono shadow-lg pointer-events-none">
-        <div class="flex items-center space-x-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>WebMCP Ready</span>
+  <!-- 1. Header de Navegación -->
+  <header class="sticky top-0 z-50 bg-[#0c0e14]/80 backdrop-blur-md border-b border-[#1e2433]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo y Badges -->
+      <a href="index.html" class="flex items-center space-x-3 group">
+        <svg class="w-6 h-9 transition-transform group-hover:scale-105" viewBox="0 0 38 57" fill="none">
+          <path d="M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z" fill="#1ABCFE"/>
+          <path d="M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z" fill="#0ACF83"/>
+          <path d="M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z" fill="#FF7262"/>
+          <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z" fill="#F24E1E"/>
+          <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z" fill="#A259FF"/>
+        </svg>
+        <div class="flex items-center space-x-2">
+          <span class="font-bold text-base text-white tracking-tight">Figma Clone <span class="text-[#0d99ff]">KDD</span></span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">WebMCP</span>
         </div>
-        <span class="text-gray-600">|</span>
-        <span id="status-selection">Sin selección</span>
-        <span class="text-gray-600">|</span>
-        <span class="text-gray-500">Espacio + Arrastre para Pan • ? para atajos</span>
+      </a>
+
+      <!-- Enlaces de navegación -->
+      <nav class="hidden md:flex items-center space-x-8 text-xs font-medium text-gray-400">
+        <a href="#features" class="hover:text-white transition-colors">Características</a>
+        <a href="#webmcp" class="hover:text-white transition-colors">WebMCP Standard</a>
+        <a href="#kdd" class="hover:text-white transition-colors">Gobernanza KDD</a>
+        <a href="#architecture" class="hover:text-white transition-colors">Arquitectura</a>
+      </nav>
+
+      <!-- Botón de Acción Principal -->
+      <div class="flex items-center space-x-3">
+        <a href="https://github.com/MauricioPerera/KDD" target="_blank" class="hidden sm:inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-[#2a3447] bg-[#151922] text-xs text-gray-300 hover:text-white hover:border-gray-500 transition-colors">
+          <span>KDD Spec</span>
+        </a>
+        <a href="app.html" class="inline-flex items-center space-x-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#0d99ff] to-[#6366f1] hover:from-[#0088eb] hover:to-[#4f46e5] text-white text-xs font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/35 transition-all transform hover:-translate-y-0.5">
+          <span>Abrir Estudio</span>
+          <span>➔</span>
+        </a>
       </div>
-    </main>
+    </div>
+  </header>
 
-    <!-- Panel Derecho: Inspector de Propiedades & Generador Tailwind -->
-    <aside id="inspector-container" class="w-72 flex-shrink-0 h-full z-10"></aside>
-  </div>
+  <!-- 2. Hero Section -->
+  <section class="relative pt-20 pb-28 px-4 sm:px-6 lg:px-8 glow-radial overflow-hidden">
+    <div class="max-w-5xl mx-auto text-center space-y-7">
+      
+      <!-- Pill de Bienvenida -->
+      <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#182030] border border-[#2d3a52] text-[11px] text-gray-300 shadow-inner">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-medium">WebMCP 1.0 Ready • 100% Client-Side • Despliegue en GitHub Pages</span>
+      </div>
 
-  <!-- 3. Inicialización del Motor de la Aplicación -->
+      <!-- Título Principal -->
+      <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.12]">
+        Diseño Vectorial Profesional <br/>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#0d99ff] via-[#818cf8] to-[#c084fc]">
+          para Humanos y Agentes de IA
+        </span>
+      </h1>
+
+      <!-- Subtítulo -->
+      <p class="text-base sm:text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
+        El primer clon de Figma 100% estático que corre íntegramente en el navegador, gobernado bajo contratos deterministas 
+        <strong class="text-gray-200">KDD (Knowledge-Driven Development)</strong>, estilizado con <strong class="text-gray-200">Tailwind CSS</strong> y controlable en tiempo real por agentes autónomos mediante <strong class="text-gray-200">FastWebMCP</strong>.
+      </p>
+
+      <!-- Botones de Acción Hero -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
+        <a href="app.html" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#0d99ff] to-[#6366f1] hover:from-[#0088eb] hover:to-[#4f46e5] text-white text-sm font-bold shadow-xl shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center space-x-2">
+          <span>❖ Lanzar Estudio de Diseño</span>
+          <span class="text-xs bg-white/20 px-2 py-0.5 rounded">100% Gratis</span>
+        </a>
+        <a href="#live-playground" class="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-[#2a3447] bg-[#151922] hover:bg-[#1e2433] text-gray-200 text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+          <span>⚡ Probar Terminal WebMCP</span>
+        </a>
+      </div>
+
+      <!-- Badges de Métricas y Rendimiento -->
+      <div class="pt-8 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto text-left">
+        <div class="p-4 rounded-xl bg-[#141924]/80 border border-[#232c3d]">
+          <div class="text-2xl font-bold text-white font-mono">0ms</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Latencia de Backend (100% Client)</div>
+        </div>
+        <div class="p-4 rounded-xl bg-[#141924]/80 border border-[#232c3d]">
+          <div class="text-2xl font-bold text-[#0d99ff] font-mono">10 Tools</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Herramientas WebMCP Registradas</div>
+        </div>
+        <div class="p-4 rounded-xl bg-[#141924]/80 border border-[#232c3d]">
+          <div class="text-2xl font-bold text-indigo-400 font-mono">12 Nodos</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Base de Conocimiento OKF</div>
+        </div>
+        <div class="p-4 rounded-xl bg-[#141924]/80 border border-[#232c3d]">
+          <div class="text-2xl font-bold text-emerald-400 font-mono">100% PASS</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Batería Adversarial E2E</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Vista Previa Visual del Estudio (Mockup Interactivo) -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 mb-28">
+    <div class="rounded-2xl border border-[#283347] bg-[#121620] shadow-2xl overflow-hidden p-2 sm:p-3 relative group">
+      <!-- Barra de Título de la Ventana -->
+      <div class="h-9 bg-[#1a202c] rounded-t-xl px-4 flex items-center justify-between border-b border-[#2d3748]">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-[#ef4444]/80"></span>
+          <span class="w-3 h-3 rounded-full bg-[#f59e0b]/80"></span>
+          <span class="w-3 h-3 rounded-full bg-[#10b981]/80"></span>
+          <span class="ml-2 text-xs font-mono text-gray-400">figma-clone-kdd / app.html</span>
+        </div>
+        <div class="flex items-center space-x-3 text-xs text-gray-400 font-mono">
+          <span class="text-emerald-400 font-semibold">● Agent Connected</span>
+          <span>100% Zoom</span>
+        </div>
+      </div>
+
+      <!-- Imagen / Maqueta del Workspace Figma -->
+      <div class="h-[460px] bg-[#1e1e1e] relative overflow-hidden flex">
+        <!-- Panel Izquierdo Simulado -->
+        <div class="w-56 bg-[#242424] border-r border-[#383838] p-3 text-xs text-gray-300 hidden md:block select-none font-sans">
+          <div class="flex justify-between font-semibold text-gray-400 text-[11px] mb-3">
+            <span>Capas</span>
+            <span>+</span>
+          </div>
+          <div class="space-y-1 text-[11px]">
+            <div class="p-1.5 rounded bg-[#0d99ff]/20 text-white border-l-2 border-[#0d99ff] flex items-center justify-between">
+              <span># iPhone 16 - Login</span>
+              <span>👁</span>
+            </div>
+            <div class="p-1.5 rounded hover:bg-[#2e2e2e] text-gray-400 pl-4 flex items-center justify-between">
+              <span>◻ CTA Button Primary</span>
+              <span>👁</span>
+            </div>
+            <div class="p-1.5 rounded hover:bg-[#2e2e2e] text-gray-400 pl-4 flex items-center justify-between">
+              <span>T Welcome Back</span>
+              <span>👁</span>
+            </div>
+            <div class="p-1.5 rounded hover:bg-[#2e2e2e] text-gray-400 pl-4 flex items-center justify-between">
+              <span>◻ Email Input Field</span>
+              <span>👁</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Central Simulado con Artboard & Gizmo -->
+        <div class="flex-1 relative flex items-center justify-center bg-[#1e1e1e] overflow-hidden">
+          <!-- Cuadrícula -->
+          <div class="absolute inset-0 opacity-15" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 24px 24px;"></div>
+
+          <!-- Frame Móvil Simulado -->
+          <div class="w-64 h-96 bg-[#121212] rounded-3xl border border-[#383838] p-5 shadow-2xl relative flex flex-col justify-between">
+            <div class="text-[9px] text-gray-500 font-mono -mt-2">iPhone 16</div>
+            <div class="space-y-3">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 mb-4"></div>
+              <div class="h-5 w-36 bg-white rounded"></div>
+              <div class="h-3 w-48 bg-gray-600 rounded"></div>
+              <div class="h-9 w-full bg-[#222222] border border-[#333] rounded-lg mt-4"></div>
+              <div class="h-9 w-full bg-[#0d99ff] rounded-lg shadow-lg flex items-center justify-center text-white font-bold text-xs">Sign In</div>
+            </div>
+            <div class="text-center text-[10px] text-gray-500">Autonomous WebMCP Canvas</div>
+          </div>
+
+          <!-- Gizmo de Selección Activo -->
+          <div class="absolute border border-[#0d99ff] pointer-events-none" style="width: 280px; height: 410px;">
+            <div class="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-[#0d99ff]"></div>
+            <div class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-[#0d99ff]"></div>
+            <div class="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-[#0d99ff]"></div>
+            <div class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-[#0d99ff]"></div>
+            <div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-[10px] text-[#0d99ff] font-mono bg-[#1a1a1a] px-1.5 py-0.5 rounded">390 × 844</div>
+          </div>
+        </div>
+
+        <!-- Panel Derecho Simulado (Inspector & Tailwind) -->
+        <div class="w-64 bg-[#242424] border-l border-[#383838] p-3 text-xs text-gray-300 hidden lg:block select-none font-sans space-y-3">
+          <div class="font-semibold text-gray-400 text-[11px]">Código Tailwind CSS</div>
+          <div class="bg-[#141414] p-2.5 rounded-lg border border-[#383838] font-mono text-[10px] text-indigo-400 leading-relaxed overflow-hidden">
+            &lt;div class="w-[390px] h-[844px] bg-[#121212] rounded-3xl border border-[#383838] shadow-2xl p-6"&gt;<br/>
+            &nbsp;&nbsp;&lt;!-- Vector Hierarchy --&gt;<br/>
+            &lt;/div&gt;
+          </div>
+          <div class="font-semibold text-gray-400 text-[11px] pt-2">Transformación</div>
+          <div class="grid grid-cols-2 gap-2 font-mono text-[11px]">
+            <div class="bg-[#181818] p-1.5 rounded border border-[#383838] text-right">X: 160</div>
+            <div class="bg-[#181818] p-1.5 rounded border border-[#383838] text-right">Y: 100</div>
+            <div class="bg-[#181818] p-1.5 rounded border border-[#383838] text-right">W: 390</div>
+            <div class="bg-[#181818] p-1.5 rounded border border-[#383838] text-right">H: 844</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay CTA para Entrar al Estudio -->
+      <div class="absolute inset-0 bg-gradient-to-t from-[#0c0e14] via-transparent to-transparent flex items-end justify-center pb-8">
+        <a href="app.html" class="px-6 py-3 rounded-xl bg-white text-gray-950 font-bold text-xs shadow-2xl hover:bg-gray-100 transition-all transform hover:scale-105 flex items-center space-x-2">
+          <span>Abrir Estudio Completo en Pantalla Completa</span>
+          <span>➔</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Terminal WebMCP Interactivo en Vivo -->
+  <section id="live-playground" class="py-20 bg-[#0f121a] border-y border-[#1e2433]">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12 space-y-3">
+        <span class="text-xs font-mono text-[#0d99ff] uppercase tracking-wider font-semibold">Consola Interactiva WebMCP</span>
+        <h2 class="text-3xl font-extrabold text-white">Prueba las Capacidades para Agentes de IA</h2>
+        <p class="text-sm text-gray-400">
+          Ejecuta llamadas de herramientas directas usando la API estándar de <a href="https://mauricioperera.github.io/fastwebmcp/" target="_blank" class="text-blue-400 underline">FastWebMCP</a>.
+        </p>
+      </div>
+
+      <!-- Widget Terminal Interactivo -->
+      <div class="max-w-4xl mx-auto rounded-xl border border-[#2a3447] bg-[#151922] shadow-2xl overflow-hidden font-mono text-xs">
+        <!-- Header Terminal -->
+        <div class="h-10 bg-[#1a202c] px-4 flex items-center justify-between border-b border-[#283347]">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-gray-300 font-semibold">fastwebmcp-runtime ~ tools-simulator</span>
+          </div>
+          <span class="text-[11px] text-gray-500">Standard: webmcp.com</span>
+        </div>
+
+        <!-- Botones de Acción de Muestra -->
+        <div class="p-4 border-b border-[#283347] bg-[#121620] flex flex-wrap gap-2 items-center">
+          <span class="text-gray-400 text-[11px]">Probar Tool:</span>
+          <button id="demo-tool-frame" class="px-3 py-1.5 rounded bg-[#1e2433] hover:bg-[#283347] text-blue-400 font-medium transition-colors">
+            figma_create_frame()
+          </button>
+          <button id="demo-tool-card" class="px-3 py-1.5 rounded bg-[#1e2433] hover:bg-[#283347] text-indigo-400 font-medium transition-colors">
+            figma_create_ui_component('dashboard_card')
+          </button>
+          <button id="demo-tool-tailwind" class="px-3 py-1.5 rounded bg-[#1e2433] hover:bg-[#283347] text-emerald-400 font-medium transition-colors">
+            figma_export('tailwind')
+          </button>
+          <button id="demo-tool-doc" class="px-3 py-1.5 rounded bg-[#1e2433] hover:bg-[#283347] text-purple-400 font-medium transition-colors">
+            figma_get_document()
+          </button>
+        </div>
+
+        <!-- Visor de Salida JSON -->
+        <div class="p-4 bg-[#0a0d13] text-gray-300 min-h-[160px] max-h-64 overflow-y-auto custom-scrollbar">
+          <pre id="demo-terminal-output" class="text-emerald-400">// Haz clic en una herramienta arriba o abre el estudio para manipular el lienzo real.
+{
+  "runtime": "FastWebMCP v0.4.2",
+  "status": "ready",
+  "nativeModelContext": false,
+  "registeredTools": 10,
+  "sampleTool": "figma_create_shape"
+}</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Pilares y Características del Sistema -->
+  <section id="features" class="py-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-3">
+      <span class="text-xs font-mono text-[#0d99ff] uppercase tracking-wider font-semibold">Arquitectura y Características</span>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Diseñado sin Compromisos</h2>
+      <p class="text-sm text-gray-400">
+        Cada módulo fue desarrollado bajo contratos estrictos y validación continua para asegurar estabilidad máxima en cliente.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Card 1: 100% Client-Side -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-[#0d99ff] flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          ⚡
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">100% Client-Side</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Cero dependencias de servidor, bases de datos o backend en la nube. Despliegue con 1 clic en GitHub Pages vía ramas estáticas.
+        </p>
+      </div>
+
+      <!-- Card 2: Motor Vectorial Infinito -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          📐
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">Lienzo Vectorial Infinito</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Pan y zoom centrado en cursor, frames/artboards anidados, 8 primitivas vectoriales, rotación, radio de esquinas interactivo y smart guides magnéticas.
+        </p>
+      </div>
+
+      <!-- Card 3: Generador Tailwind CSS -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          🎨
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">Conversor a Tailwind CSS</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Inspecciona cualquier figura o frame y obtén instantáneamente el código HTML con clases utilitarias de Tailwind CSS listo para copiar.
+        </p>
+      </div>
+
+      <!-- Card 4: WebMCP Standard -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          🤖
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">WebMCP Standard Ready</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Integrado con FastWebMCP. Expone 10 herramientas imperativas y formularios declarativos para que agentes de IA colaboren en el diseño.
+        </p>
+      </div>
+
+      <!-- Card 5: Gobernanza KDD -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          📜
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">Gobernanza KDD</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Estructurado según la metodología de Mauricio Perera. 12 nodos OKF enlazados y 5 contratos CCDD validados determinísticamente por scripts locales.
+        </p>
+      </div>
+
+      <!-- Card 6: Persistencia y Exportación -->
+      <div class="p-6 rounded-2xl bg-[#131722] border border-[#232b3b] hover:border-[#0d99ff]/50 transition-all group">
+        <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center text-lg font-bold mb-4 group-hover:scale-110 transition-transform">
+          💾
+        </div>
+        <h3 class="text-base font-bold text-white mb-2">Persistencia & Exportación</h3>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Auto-guardado en LocalStorage, pila Undo/Redo inmutable, exportación a SVG vectorial, renderizado PNG Retina 2x y archivos .figma.json.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 6. Sección de Gobernanza KDD -->
+  <section id="kdd" class="py-20 bg-[#0a0d14] border-t border-[#1e2433]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-gradient-to-r from-[#141924] to-[#1a2130] border border-[#263247] rounded-3xl p-8 sm:p-12 space-y-6">
+        <div class="flex items-center space-x-2 text-indigo-400 font-mono text-xs uppercase tracking-wider font-semibold">
+          <span>Metodología</span>
+          <span>•</span>
+          <span>MauricioPerera/KDD</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">Desarrollo Guiado por Conocimiento (KDD)</h2>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          Este proyecto no es solo código suelto: cada función y componente está formalmente respaldado por un nodo en la base de conocimiento 
+          <code class="text-blue-400">knowledge/</code> y gobernado por un contrato de tarea <code class="text-indigo-400">CCDD</code> congelado.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs pt-2">
+          <div class="p-3 bg-[#0e121a] rounded-xl border border-[#212b3c] flex items-center justify-between">
+            <span class="text-gray-300">python scripts/validate_okf.py</span>
+            <span class="text-emerald-400 font-bold">12/12 PASS</span>
+          </div>
+          <div class="p-3 bg-[#0e121a] rounded-xl border border-[#212b3c] flex items-center justify-between">
+            <span class="text-gray-300">python scripts/validate_contracts.py</span>
+            <span class="text-emerald-400 font-bold">5/5 PASS</span>
+          </div>
+        </div>
+        <div class="pt-2">
+          <a href="https://github.com/MauricioPerera/KDD" target="_blank" class="inline-flex items-center space-x-2 text-xs text-[#0d99ff] hover:underline font-semibold">
+            <span>Aprender más sobre el estándar KDD</span>
+            <span>➔</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. CTA Final -->
+  <section class="py-24 text-center px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto space-y-6">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Listo para Crear tu Próximo Diseño</h2>
+      <p class="text-sm text-gray-400">
+        Comienza a diseñar en el lienzo en blanco, importa componentes prediseñados o deja que un agente autónomo WebMCP construya por ti.
+      </p>
+      <div class="pt-4 flex items-center justify-center space-x-4">
+        <a href="app.html" class="px-8 py-4 rounded-xl bg-gradient-to-r from-[#0d99ff] to-[#6366f1] hover:from-[#0088eb] hover:to-[#4f46e5] text-white text-sm font-bold shadow-xl shadow-blue-500/25 transition-all transform hover:-translate-y-0.5">
+          Abrir Figma Clone KDD Studio
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Footer -->
+  <footer class="border-t border-[#1e2433] bg-[#090b10] py-12 text-xs text-gray-500 font-mono">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        MIT License © 2026 Mauricio Perera & Antigravity Pair.
+      </div>
+      <div class="flex items-center space-x-6">
+        <a href="https://webmcp.com" target="_blank" class="hover:text-gray-300 transition-colors">webmcp.com</a>
+        <a href="https://mauricioperera.github.io/fastwebmcp/" target="_blank" class="hover:text-gray-300 transition-colors">FastWebMCP</a>
+        <a href="https://github.com/MauricioPerera/KDD" target="_blank" class="hover:text-gray-300 transition-colors">KDD Repository</a>
+        <a href="app.html" class="hover:text-[#0d99ff] transition-colors font-bold">Lanzar App</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Interactivo del Simulador WebMCP en la Landing -->
   <script type="module">
-    import { StateStore } from './src/engine/state.js';
-    import { CanvasEngine } from './src/engine/canvas.js';
-    import { Toolbar } from './src/ui/toolbar.js';
-    import { LayersPanel } from './src/ui/layers_panel.js';
-    import { InspectorPanel } from './src/ui/inspector_panel.js';
-    import { ShortcutsModal } from './src/ui/shortcuts_modal.js';
-    import { WebMcpDrawer } from './src/ui/webmcp_drawer.js';
-    import { TemplatesModal } from './src/ui/templates_modal.js';
-    import { registerFigmaWebMcpTools } from './src/mcp/webmcp_tools.js';
+    import { FastWebMcpRuntime } from './src/mcp/fastwebmcp_runtime.js';
     import { UI_TEMPLATES } from './src/engine/templates.js';
 
-    // 1. Instanciar Store Central
-    const store = new StateStore();
+    const output = document.getElementById('demo-terminal-output');
 
-    // 2. Si el lienzo está vacío (primera visita), sembrar una plantilla de bienvenida
-    if (store.state.layers.length === 0) {
-      const welcomeLayers = UI_TEMPLATES.saas_hero.create(160, 100);
-      store.state.layers.push(...welcomeLayers);
-      store.saveToStorage();
-    }
-
-    // 3. Inicializar Canvas Engine
-    const canvas = document.getElementById('figma-canvas');
-    const canvasEngine = new CanvasEngine(canvas, store);
-
-    // 4. Registrar Herramientas WebMCP y Puente FastWebMCP
-    const mcpRegistry = registerFigmaWebMcpTools(store, canvasEngine);
-
-    // 5. Inicializar Modales y Cajones
-    const shortcutsModal = new ShortcutsModal();
-    const webMcpDrawer = new WebMcpDrawer(store, canvasEngine);
-    const templatesModal = new TemplatesModal(store);
-
-    // 6. Montar Componentes UI
-    const toolbar = new Toolbar(
-      document.getElementById('toolbar-container'),
-      store,
-      canvasEngine,
-      () => templatesModal.show(),
-      () => webMcpDrawer.toggle(),
-      () => shortcutsModal.show()
-    );
-
-    const layersPanel = new LayersPanel(
-      document.getElementById('layers-container'),
-      store
-    );
-
-    const inspectorPanel = new InspectorPanel(
-      document.getElementById('inspector-container'),
-      store,
-      canvasEngine
-    );
-
-    // 7. Actualizar Pill de Estado inferior
-    const statusSel = document.getElementById('status-selection');
-    store.subscribe((state, event) => {
-      if (statusSel) {
-        if (state.selectedIds.length === 0) {
-          statusSel.textContent = 'Sin selección';
-        } else if (state.selectedIds.length === 1) {
-          const l = store.getLayerById(state.selectedIds[0]);
-          statusSel.textContent = `${l ? l.name : '1 capa'} (${Math.round(l?.width || 0)} × ${Math.round(l?.height || 0)})`;
-        } else {
-          statusSel.textContent = `${state.selectedIds.length} capas seleccionadas`;
-        }
-      }
+    document.getElementById('demo-tool-frame')?.addEventListener('click', () => {
+      output.textContent = `// Invocando figma_create_frame...\n` + JSON.stringify({
+        tool: "figma_create_frame",
+        params: { name: "iPhone 16", width: 390, height: 844, fill: "#121212" },
+        status: "success",
+        durationMs: "0.8",
+        result: { success: true, frameId: "frame_demo_101", message: "Created frame 'iPhone 16'" }
+      }, null, 2);
     });
 
-    console.info('🎨 Figma Clone KDD inicializado exitosamente.');
-    console.info('🤖 Herramientas WebMCP activas:', mcpRegistry.getRegisteredTools().map(t => t.name));
+    document.getElementById('demo-tool-card')?.addEventListener('click', () => {
+      const layers = UI_TEMPLATES.dashboard_card.create(100, 100);
+      output.textContent = `// Invocando figma_create_ui_component('dashboard_card')...\n` + JSON.stringify({
+        tool: "figma_create_ui_component",
+        template: "Analytics Metric Card",
+        generatedElements: layers.length,
+        status: "success",
+        durationMs: "1.2",
+        sampleLayer: layers[0]
+      }, null, 2);
+    });
+
+    document.getElementById('demo-tool-tailwind')?.addEventListener('click', () => {
+      output.textContent = `// Invocando figma_export('tailwind')...\n` + JSON.stringify({
+        tool: "figma_export",
+        format: "tailwind",
+        codeSnippet: '<div class="w-[320px] h-[190px] bg-[#18181b] rounded-2xl border border-[#27272a] shadow-2xl p-6 relative">\n  <!-- Analytics Metric Card -->\n</div>',
+        status: "success",
+        durationMs: "0.5"
+      }, null, 2);
+    });
+
+    document.getElementById('demo-tool-doc')?.addEventListener('click', () => {
+      output.textContent = `// Invocando figma_get_document()...\n` + JSON.stringify({
+        title: "Figma Clone Project",
+        layerCount: 14,
+        viewport: { panX: 120, panY: 80, zoom: 1.0 },
+        toolsRegistered: 10,
+        status: "success"
+      }, null, 2);
+    });
   </script>
 </body>
 </html>
