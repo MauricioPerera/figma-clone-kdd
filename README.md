@@ -85,24 +85,16 @@ El clon está preparado para la era de los agentes autónomos de navegación:
 
 ## 🚀 Despliegue en GitHub Pages (100% Client-Side)
 
-Al ser una aplicación **100% estática** (HTML5, JavaScript Modules nativos, Tailwind CDN, SVG, Canvas 2D), el despliegue no requiere ningún servidor ni proceso de compilación:
+El proyecto ya se encuentra publicado y en vivo en GitHub Pages:
+- 🌐 **Landing Page Oficial**: [https://mauricioperera.github.io/figma-clone-kdd/](https://mauricioperera.github.io/figma-clone-kdd/)
+- 🎨 **Estudio de Diseño Directo**: [https://mauricioperera.github.io/figma-clone-kdd/app.html](https://mauricioperera.github.io/figma-clone-kdd/app.html)
+- 📦 **Repositorio GitHub**: [https://github.com/MauricioPerera/figma-clone-kdd](https://github.com/MauricioPerera/figma-clone-kdd)
 
-1. Crea un repositorio en GitHub (ej. `figma-clone-kdd`).
-2. Sube los archivos a la rama `main`:
-   ```bash
-   git init
-   git add .
-   git commit -m "feat: Figma Clone KDD 100% functional client-side"
-   git remote add origin https://github.com/<tu-usuario>/<tu-repo>.git
-   git push -u origin main
-   ```
-3. En tu repositorio de GitHub, dirígete a **Settings** → **Pages**.
-4. En **Build and deployment** → **Source**, elige **Deploy from a branch**.
-5. Selecciona la rama `main` y la carpeta `/ (root)`.
-6. Haz clic en **Save**. En segundos tu estudio estará online en:
-   ```
-   https://<tu-usuario>.github.io/<tu-repo>/
-   ```
+Desplegado de forma automatizada mediante la CLI oficial de GitHub (`gh`):
+```bash
+gh repo create figma-clone-kdd --public --source=. --remote=origin --push
+gh api -X POST repos/MauricioPerera/figma-clone-kdd/pages -f "source[branch]=main" -f "source[path]=/"
+```
 
 ---
 
