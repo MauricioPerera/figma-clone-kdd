@@ -258,7 +258,7 @@ export class StateStore {
   // --- Orden y Jerarquía de Capas ---
   bringForward(id) {
     const idx = this.state.layers.findIndex(l => l.id === id);
-    if (idx < this.state.layers.length - 1) {
+    if (idx !== -1 && idx < this.state.layers.length - 1) {
       this.recordHistory();
       const temp = this.state.layers[idx];
       this.state.layers[idx] = this.state.layers[idx + 1];

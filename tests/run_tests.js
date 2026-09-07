@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename);
 const testFiles = [
   'canvas_engine.test.js',
   'state_store.test.js',
-  'webmcp_tools.test.js'
+  'webmcp_tools.test.js',
+  'adversarial_e2e_battery.test.js'
 ];
 
 console.log('========================================================');

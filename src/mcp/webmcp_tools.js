@@ -163,6 +163,37 @@ export function registerFigmaWebMcpTools(store, canvasEngine) {
     }
   });
 
+  // 5b. Transformar Capa (Mover / Escalar / Rotar)
+  fastwebmcp.registerTool({
+    name: 'figma_transform_layer',
+    title: 'Transform Layer',
+    description: 'Translates, scales, or rotates a layer on the canvas.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Layer ID' },
+        x: { type: 'number', description: 'New X position' },
+        y: { type: 'number', description: 'New Y position' },
+        width: { type: 'number', description: 'New width' },
+        height: { type: 'number', description: 'New height' },
+        rotation: { type: 'number', description: 'Rotation in degrees' }
+      },
+      required: ['id']
+    },
+    execute: async ({ id, x, y, width, height, rotation }) => {
+      const props = {};
+      if (x !== undefined) props.x = x;
+      if (y !== undefined) props.y = y;
+      if (width !== undefined) props.width = Math.max(1, width);
+      if (height !== undefined) props.height = Math.max(1, height);
+      if (rotation !== undefined) props.rotation = rotation;
+
+      const updated = store.updateLayer(id, props, true);
+      if (!updated) throw new Error(`Capa con ID "${id}" no encontrada.`);
+      return { success: true, layer: updated };
+    }
+  });
+
   // 6. Eliminar Capas
   fastwebmcp.registerTool({
     name: 'figma_delete_layers',

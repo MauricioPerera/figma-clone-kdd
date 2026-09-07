@@ -17,8 +17,8 @@ export function exportToSVG(layers, customBounds = null) {
   svg += `    </filter>\n`;
   svg += `  </defs>\n`;
 
-  for (const layer of layers) {
-    if (!layer.visible) continue;
+  for (const layer of (layers || [])) {
+    if (!layer || !layer.visible) continue;
     const transform = layer.rotation ? ` transform="rotate(${layer.rotation}, ${layer.x + layer.width / 2}, ${layer.y + layer.height / 2})"` : '';
     const opacity = layer.opacity !== undefined && layer.opacity < 1 ? ` opacity="${layer.opacity}"` : '';
     const shadowAttr = layer.shadow ? ` filter="url(#drop-shadow)"` : '';

@@ -55,13 +55,12 @@ export class FastWebMcpRuntime {
   }
 
   async invokeTool(name, params = {}) {
-    const tool = this.registry.get(name);
-    if (!tool) {
-      throw new Error(`[FastWebMCP] Herramienta desconocida: "${name}"`);
-    }
-
     const startTime = performance.now();
     try {
+      const tool = this.registry.get(name);
+      if (!tool) {
+        throw new Error(`[FastWebMCP] Herramienta desconocida: "${name}"`);
+      }
       const result = await tool.execute(params);
       const duration = (performance.now() - startTime).toFixed(1);
       const logEntry = {

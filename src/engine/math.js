@@ -14,17 +14,22 @@ export function rotatePoint(x, y, cx, cy, angleDegrees) {
   const rad = (angleDegrees * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  const nx = cos * (x - cx) - sin * (y - cy) + cx;
-  const ny = sin * (x - cx) + cos * (y - cy) + cy;
-  return { x: nx, y: ny };
+  let nx = cos * (x - cx) - sin * (y - cy) + cx;
+  let ny = sin * (x - cx) + cos * (y - cy) + cy;
+  if (Math.abs(nx) < 1e-10) nx = 0;
+  if (Math.abs(ny) < 1e-10) ny = 0;
+  return { x: Object.is(nx, -0) ? 0 : nx, y: Object.is(ny, -0) ? 0 : ny };
 }
 
 export function getLayerBounds(layer) {
+  if (!layer) {
+    return { x: 0, y: 0, width: 0, height: 0, cx: 0, cy: 0 };
+  }
   // Retorna bounding box AABB
-  let minX = layer.x;
-  let minY = layer.y;
-  let maxX = layer.x + layer.width;
-  let maxY = layer.y + layer.height;
+  let minX = layer.x || 0;
+  let minY = layer.y || 0;
+  let maxX = minX + (layer.width || 0);
+  let maxY = minY + (layer.height || 0);
 
   if (layer.rotation && layer.rotation !== 0) {
     const cx = layer.x + layer.width / 2;
@@ -97,19 +102,24 @@ export function distanceToSegment(px, py, x1, y1, x2, y2) {
 }
 
 export function getCombinedBounds(layers) {
-  if (!layers || layers.length === 0) return null;
+  if (!layers || !Array.isArray(layers) || layers.length === 0) return null;
+  const validLayers = layers.filter(Boolean);
+  if (validLayers.length === 0) return null;
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  for (const layer of layers) {
+  for (const layer of validLayers) {
     const b = getLayerBounds(layer);
     minX = Math.min(minX, b.x);
     minY = Math.min(minY, b.y);
     maxX = Math.max(maxX, b.x + b.width);
     maxY = Math.max(maxY, b.y + b.height);
   }
+
+  if (minX === Infinity) return null;
 
   return {
     x: minX,
@@ -122,10 +132,14 @@ export function getCombinedBounds(layers) {
 }
 
 export function snapValue(val, snapGrid = 8) {
+  if (!snapGrid || snapGrid <= 0) return val;
   return Math.round(val / snapGrid) * snapGrid;
 }
 
 export function findSnapGuides(draggingLayer, otherLayers, threshold = 6) {
+  if (!draggingLayer || !otherLayers || !Array.isArray(otherLayers) || otherLayers.length === 0) {
+    return { deltaX: 0, deltaY: 0, guides: [] };
+  }
   const guides = [];
   const db = getLayerBounds(draggingLayer);
   const snapTargetsX = [
