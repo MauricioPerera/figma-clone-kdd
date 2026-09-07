@@ -1,0 +1,27 @@
+{
+  "name": "figma-clone-kdd",
+  "version": "1.0.0",
+  "description": "100% Client-Side Figma Clone with Tailwind, HTMX, FastWebMCP and KDD Governance.",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run_tests.js",
+    "validate:contracts": "python scripts/validate_contracts.py",
+    "validate:okf": "python scripts/validate_okf.py",
+    "start": "python -m http.server 8080"
+  },
+  "keywords": [
+    "figma",
+    "vector",
+    "canvas",
+    "webmcp",
+    "fastwebmcp",
+    "kdd",
+    "okf",
+    "ccdd",
+    "tailwind",
+    "htmx"
+  ],
+  "author": "Mauricio Perera & AI Pair",
+  "license": "MIT"
+}

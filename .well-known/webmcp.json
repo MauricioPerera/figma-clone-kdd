@@ -1,0 +1,50 @@
+{
+  "name": "Figma Clone KDD",
+  "description": "100% Client-Side Vector Design Tool and Figma Clone with WebMCP capabilities.",
+  "version": "1.0.0",
+  "webmcpVersion": "1.0.0",
+  "standard": "https://webmcp.com",
+  "homepage": "https://mauricioperera.github.io/fastwebmcp/",
+  "tools": [
+    {
+      "name": "figma_create_frame",
+      "description": "Creates an artboard/frame on the canvas."
+    },
+    {
+      "name": "figma_create_shape",
+      "description": "Creates a vector shape (rect, circle, polygon, star, line, arrow) on the canvas."
+    },
+    {
+      "name": "figma_create_text",
+      "description": "Inserts a styled typography layer on the canvas."
+    },
+    {
+      "name": "figma_create_ui_component",
+      "description": "Generates a pre-designed UI component (button, card, navbar, hero, login) on canvas."
+    },
+    {
+      "name": "figma_update_layer",
+      "description": "Updates geometry, fill, stroke, effects, or typography of an existing layer."
+    },
+    {
+      "name": "figma_transform_layer",
+      "description": "Moves, scales, or rotates layers on canvas."
+    },
+    {
+      "name": "figma_delete_layers",
+      "description": "Removes one or more layers from the canvas."
+    },
+    {
+      "name": "figma_get_document",
+      "description": "Retrieves the complete document tree with all layers, frames, and viewport state."
+    },
+    {
+      "name": "figma_export",
+      "description": "Exports canvas or layer as SVG, PNG, or Tailwind CSS code."
+    },
+    {
+      "name": "figma_generate_design_prompt",
+      "description": "Translates natural language UI design prompt into Figma vector layers."
+    }
+  ]
+}

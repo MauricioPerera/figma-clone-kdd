@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="application-name" content="Figma Clone KDD">
+  <meta name="description" content="100% Client-Side Figma Clone con Tailwind CSS, HTMX, FastWebMCP y Gobernanza KDD.">
+  <meta name="webmcp-enabled" content="true">
+  <meta name="webmcp-manifest" content=".well-known/webmcp.json">
+  <title>Figma Clone KDD — 100% Client-Side Vector Studio</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            figma: {
+              canvas: '#1e1e1e',
+              surface: '#2c2c2c',
+              sidebar: '#242424',
+              border: '#383838',
+              accent: '#0d99ff'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- HTMX CDN para interacciones reactivas y formularios declarativos -->
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <!-- Estilos Personalizados Figma -->
+  <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body class="h-screen w-screen flex flex-col bg-[#1e1e1e] text-white overflow-hidden select-none">
+
+  <!-- 1. Barra de Herramientas Superior -->
+  <header id="toolbar-container" class="w-full flex-shrink-0 z-20"></header>
+
+  <!-- 2. Área de Trabajo Principal (Layout 3 Paneles) -->
+  <div class="flex-1 flex w-full overflow-hidden relative">
+    
+    <!-- Panel Izquierdo: Árbol de Capas & Assets -->
+    <aside id="layers-container" class="w-64 flex-shrink-0 h-full z-10"></aside>
+
+    <!-- Centro: Lienzo Vectorial Infinito -->
+    <main id="canvas-container" class="flex-1 h-full relative bg-[#1e1e1e] overflow-hidden">
+      <canvas id="figma-canvas" class="w-full h-full cursor-default"></canvas>
+
+      <!-- Pill flotante inferior: Estado de coordenadas y atajos -->
+      <div class="absolute bottom-3 left-4 bg-[#242424]/90 backdrop-blur border border-[#383838] rounded-full px-3 py-1 flex items-center space-x-3 text-[11px] text-gray-400 font-mono shadow-lg pointer-events-none">
+        <div class="flex items-center space-x-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>WebMCP Ready</span>
+        </div>
+        <span class="text-gray-600">|</span>
+        <span id="status-selection">Sin selección</span>
+        <span class="text-gray-600">|</span>
+        <span class="text-gray-500">Espacio + Arrastre para Pan • ? para atajos</span>
+      </div>
+    </main>
+
+    <!-- Panel Derecho: Inspector de Propiedades & Generador Tailwind -->
+    <aside id="inspector-container" class="w-72 flex-shrink-0 h-full z-10"></aside>
+  </div>
+
+  <!-- 3. Inicialización del Motor de la Aplicación -->
+  <script type="module">
+    import { StateStore } from './src/engine/state.js';
+    import { CanvasEngine } from './src/engine/canvas.js';
+    import { Toolbar } from './src/ui/toolbar.js';
+    import { LayersPanel } from './src/ui/layers_panel.js';
+    import { InspectorPanel } from './src/ui/inspector_panel.js';
+    import { ShortcutsModal } from './src/ui/shortcuts_modal.js';
+    import { WebMcpDrawer } from './src/ui/webmcp_drawer.js';
+    import { TemplatesModal } from './src/ui/templates_modal.js';
+    import { registerFigmaWebMcpTools } from './src/mcp/webmcp_tools.js';
+    import { UI_TEMPLATES } from './src/engine/templates.js';
+
+    // 1. Instanciar Store Central
+    const store = new StateStore();
+
+    // 2. Si el lienzo está vacío (primera visita), sembrar una plantilla de bienvenida
+    if (store.state.layers.length === 0) {
+      const welcomeLayers = UI_TEMPLATES.saas_hero.create(160, 100);
+      store.state.layers.push(...welcomeLayers);
+      store.saveToStorage();
+    }
+
+    // 3. Inicializar Canvas Engine
+    const canvas = document.getElementById('figma-canvas');
+    const canvasEngine = new CanvasEngine(canvas, store);
+
+    // 4. Registrar Herramientas WebMCP y Puente FastWebMCP
+    const mcpRegistry = registerFigmaWebMcpTools(store, canvasEngine);
+
+    // 5. Inicializar Modales y Cajones
+    const shortcutsModal = new ShortcutsModal();
+    const webMcpDrawer = new WebMcpDrawer(store, canvasEngine);
+    const templatesModal = new TemplatesModal(store);
+
+    // 6. Montar Componentes UI
+    const toolbar = new Toolbar(
+      document.getElementById('toolbar-container'),
+      store,
+      canvasEngine,
+      () => templatesModal.show(),
+      () => webMcpDrawer.toggle(),
+      () => shortcutsModal.show()
+    );
+
+    const layersPanel = new LayersPanel(
+      document.getElementById('layers-container'),
+      store
+    );
+
+    const inspectorPanel = new InspectorPanel(
+      document.getElementById('inspector-container'),
+      store,
+      canvasEngine
+    );
+
+    // 7. Actualizar Pill de Estado inferior
+    const statusSel = document.getElementById('status-selection');
+    store.subscribe((state, event) => {
+      if (statusSel) {
+        if (state.selectedIds.length === 0) {
+          statusSel.textContent = 'Sin selección';
+        } else if (state.selectedIds.length === 1) {
+          const l = store.getLayerById(state.selectedIds[0]);
+          statusSel.textContent = `${l ? l.name : '1 capa'} (${Math.round(l?.width || 0)} × ${Math.round(l?.height || 0)})`;
+        } else {
+          statusSel.textContent = `${state.selectedIds.length} capas seleccionadas`;
+        }
+      }
+    });
+
+    console.info('🎨 Figma Clone KDD inicializado exitosamente.');
+    console.info('🤖 Herramientas WebMCP activas:', mcpRegistry.getRegisteredTools().map(t => t.name));
+  </script>
+</body>
+</html>

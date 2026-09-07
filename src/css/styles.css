@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+:root {
+  --figma-bg-canvas: #1e1e1e;
+  --figma-bg-surface: #2c2c2c;
+  --figma-bg-sidebar: #242424;
+  --figma-border: #383838;
+  --figma-accent: #0d99ff;
+  --figma-text: #ffffff;
+  --figma-text-muted: #8c8c8c;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--figma-bg-canvas);
+  color: var(--figma-text);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3e3e3e;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* Canvas Cursors */
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* Tooltip animation */
+[title] {
+  position: relative;
+}
