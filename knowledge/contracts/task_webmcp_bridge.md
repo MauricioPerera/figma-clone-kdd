@@ -21,5 +21,8 @@ deps_allowed: []
 Implementar el conjunto de herramientas formales de WebMCP para creación y consulta de diseños, integrando con `document.modelContext` y la consola interactiva en el cliente.
 
 ## Constraints & Links
+- `src/mcp/fastwebmcp_runtime.js` valida argumentos antes de ejecutar cualquier handler tanto nativo como fallback, mediante `src/mcp/schema_validation.js` sin dependencias externas.
+- El subconjunto usado por el catálogo incluye type, required, enum, properties/items, additionalProperties:false, minItems y límites numéricos; todo número debe ser finito. No se rechazan propiedades adicionales cuando el esquema no lo prohíbe.
+- Entradas inválidas deben fallar antes de mutar. Regresiones en `tests/schema_validation.test.js` y matriz `tests/all_tools_coverage.test.js`, sin relajar aserciones existentes.
 - Arquitectura WebMCP: [webmcp-integration.md](../architecture/webmcp-integration.md)
 - Modelo de capas: [layer_schema.md](../data_models/layer_schema.md)

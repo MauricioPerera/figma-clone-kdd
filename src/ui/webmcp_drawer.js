@@ -35,6 +35,17 @@ export class WebMcpDrawer {
 
       <!-- Cuerpo del Cajón -->
       <div class="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar">
+        <section aria-label="Protección de diseño">
+          <form toolname="figma_prepare_design_protection" tooldescription="Preparar reglas exactas sin activarlas" data-protection-tool="figma_prepare_design_protection">
+            <button type="submit">Preparar protección</button>
+            <output></output>
+          </form>
+          <form toolname="figma_activate_design_rules" tooldescription="Activar propuesta exacta con autorización explícita del usuario" data-protection-tool="figma_activate_design_rules">
+            <label>Token de propuesta <input name="confirmationToken" required class="text-black" /></label>
+            <button type="submit">Activar reglas autorizadas</button>
+            <output></output>
+          </form>
+        </section>
         <!-- 1. AI Natural Language Prompt -->
         <div class="space-y-2">
           <div class="text-[11px] font-semibold text-gray-300 uppercase tracking-wider flex items-center justify-between">
@@ -105,6 +116,14 @@ export class WebMcpDrawer {
 
     document.body.appendChild(el);
     this.drawerEl = el;
+    for (const form of el.querySelectorAll('[data-protection-tool]')) {
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const args = Object.fromEntries(new FormData(form));
+        const result = await fastwebmcp.invokeTool(form.dataset.protectionTool, args);
+        form.querySelector('output').textContent = JSON.stringify(result);
+      });
+    }
 
     this.bindEvents();
   }

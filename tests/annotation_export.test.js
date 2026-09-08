@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { filterDesignLayers, exportToSVG, layerToTailwind } from '../src/engine/export.js';
+import { isPointInLayer, findSnapGuides } from '../src/engine/math.js';
+
+const shape = {id:'design',type:'rect',x:0,y:0,width:100,height:100,fill:'#123456',visible:true};
+const note = {id:'note',type:'frame',annotationKind:'sticky',annotationRootId:'note',x:1000,y:1000,width:200,height:200,visible:true};
+const text = {id:'text',type:'text',parentId:'note',annotationRootId:'note',x:1010,y:1010,width:100,height:50,text:'PRIVATE NOTE',visible:true};
+const layers = [shape,note,text];
+assert.deepEqual(filterDesignLayers(layers).map(l=>l.id),['design']);
+assert.equal(exportToSVG(layers).includes('PRIVATE NOTE'),false);
+assert.ok(exportToSVG(layers).includes('viewBox="0 0 100 100"'));
+assert.ok(exportToSVG(layers,null,{includeAnnotations:true}).includes('PRIVATE NOTE'));
+assert.equal(layerToTailwind(text),'');
+assert.ok(layerToTailwind(text,{includeAnnotations:true}).includes('PRIVATE NOTE'));
+assert.equal(exportToSVG([text]).includes('PRIVATE NOTE'),false);
+note.softDeleted = true;
+assert.deepEqual(filterDesignLayers(layers,{includeAnnotations:true}).map(l=>l.id),['design']);
+assert.equal(isPointInLayer(1020,1020,text,layers),false);
+note.softDeleted = false;
+assert.equal(isPointInLayer(1020,1020,text,layers),true);
+text.visible = false;
+note.softDeleted = true;
+note.softDeleted = false;
+assert.equal(isPointInLayer(1020,1020,text,layers),false);
+assert.equal(text.visible,false);
+console.log('Annotation export, explicit inclusion, inherited visibility and bounds passed');

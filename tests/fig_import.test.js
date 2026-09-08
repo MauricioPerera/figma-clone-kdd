@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { deflateSync } from 'fflate';
+import { createEmptyFigDoc, encodeFigParts, assembleCanvasFig, createFigZip } from 'openfig-core';
+
+const dir = mkdtempSync(join(tmpdir(), 'fig-import-test-'));
+const source = join(dir, 'synthetic.fig');
+const output = join(dir, 'project.json');
+const fig = createEmptyFigDoc();
+const document = fig.nodes.find(node => node.type === 'DOCUMENT');
+const page = {...fig.nodes.find(node => node.type === 'CANVAS'), name:'Página sin nombre inglés'};
+const second = {...page, guid:{sessionID:0,localID:8},name:'Otra página',parentIndex:{guid:document.guid,position:'b'}};
+const flat = {guid:{sessionID:1,localID:1},phase:'CREATED',type:'VECTOR',name:'Zero height',parentIndex:{guid:page.guid,position:'a'},size:{x:175,y:0},transform:{m00:1,m01:0,m02:10,m10:0,m11:1,m12:20}};
+fig.nodes = [document,page,second,flat];
+fig.message.nodeChanges = fig.nodes;
+const parts = encodeFigParts(fig);
+writeFileSync(source, createFigZip({canvasFig:assembleCanvasFig({...parts,messageCompressed:deflateSync(parts.messageRaw)})}));
+const run = () => {
+  const result = spawnSync(process.execPath,[resolve('scripts/import_fig_project.js'),source,output],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stdout + result.stderr);
+};
+run();
+const first = readFileSync(output,'utf8');
+const manifest = JSON.parse(readFileSync(output+'.manifest.json','utf8'));
+assert.equal(manifest.pages.length,2);
+assert.equal(manifest.pages[0].name,page.name);
+assert.equal(JSON.parse(first).sourcePage.name,page.name);
+assert.equal(JSON.parse(first).layers.find(layer => layer.id === 'fig_1_1').height, 0);
+run();
+assert.equal(readFileSync(output,'utf8'),first,'Identical input must produce identical project bytes');
+console.log('Multi-page binary Figma fixture, renamed page and byte determinism passed');

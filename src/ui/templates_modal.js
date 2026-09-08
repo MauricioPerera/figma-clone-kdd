@@ -67,10 +67,7 @@ export class TemplatesModal {
           const startX = -vp.panX + 200;
           const startY = -vp.panY + 160;
           const layers = tpl.create(startX, startY);
-          this.store.recordHistory();
-          this.store.state.layers.push(...layers);
-          this.store.setSelection(layers.map(l => l.id));
-          this.store.notify('layer:add');
+            this.store.addLayers(layers);
           this.hide();
         }
       });

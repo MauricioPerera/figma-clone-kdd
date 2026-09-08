@@ -4,6 +4,7 @@
  */
 
 import { getLayerBounds, getCombinedBounds, rotatePoint } from './math.js';
+import { isLayerEffectivelyVisible } from './annotations.js';
 
 export class CanvasRenderer {
   constructor(canvas, store) {
@@ -51,9 +52,11 @@ export class CanvasRenderer {
     ctx.translate(viewport.panX, viewport.panY);
     ctx.scale(viewport.zoom, viewport.zoom);
 
-    // 4. Dibujar capas ordenadas (Frames primero como contenedores)
+    // 4. Dibujar capas ordenadas. Las coordenadas importadas son globales,
+    // pero los hijos siguen respetando el recorte de sus frames antecesores.
+    this.layerById = new Map(layers.map(layer => [layer.id, layer]));
     for (const layer of layers) {
-      if (!layer.visible) continue;
+      if (!isLayerEffectivelyVisible(layer, this.layerById)) continue;
       this.drawLayer(ctx, layer, selectedIds.includes(layer.id));
     }
 
@@ -63,7 +66,7 @@ export class CanvasRenderer {
     }
 
     // 6. Dibujar gizmo de selección activa
-    const selectedLayers = this.store.getSelectedLayers();
+    const selectedLayers = this.store.getSelectedLayers().filter(layer => isLayerEffectivelyVisible(layer, this.layerById));
     if (selectedLayers.length > 0) {
       this.drawSelectionGizmo(ctx, selectedLayers, viewport, hoverHandle);
     }
@@ -101,7 +104,14 @@ export class CanvasRenderer {
 
   drawLayer(ctx, layer, isSelected) {
     ctx.save();
+    if (layer.fillGradient?.type === 'linear') {
+      const g = layer.fillGradient;
+      const fill = ctx.createLinearGradient(layer.x + g.start.x, layer.y + g.start.y, layer.x + g.end.x, layer.y + g.end.y);
+      for (const stop of g.stops) fill.addColorStop(Math.max(0, Math.min(1, stop.position)), stop.color);
+      layer = {...layer, fill};
+    }
     ctx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
+    this.clipToAncestors(ctx, layer);
 
     // Transformación del elemento
     if (layer.rotation && layer.rotation !== 0) {
@@ -147,18 +157,23 @@ export class CanvasRenderer {
       case 'image':
         this.drawImageLayer(ctx, layer);
         break;
+      case 'vector':
+        this.drawVectorLayer(ctx, layer);
+        break;
     }
 
     ctx.restore();
   }
 
   drawFrame(ctx, layer) {
-    // 1. Título del Frame por encima
-    ctx.save();
-    ctx.font = '11px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.fillText(layer.name || 'Frame', layer.x, layer.y - 8);
-    ctx.restore();
+    // Las capas importadas de Figma no muestran rótulos ni bordes inventados.
+    if (layer.showLabel !== false) {
+      ctx.save();
+      ctx.font = '11px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.fillText(layer.name || 'Frame', layer.x, layer.y - 8);
+      ctx.restore();
+    }
 
     // 2. Cuerpo del Frame
     ctx.beginPath();
@@ -174,10 +189,15 @@ export class CanvasRenderer {
       ctx.fill();
     }
 
-    // Borde sutil del Frame
-    ctx.strokeStyle = layer.stroke !== 'none' ? layer.stroke : 'rgba(255, 255, 255, 0.12)';
-    ctx.lineWidth = layer.strokeWidth || 1;
-    ctx.stroke();
+    if (layer.stroke && layer.stroke !== 'none') {
+      ctx.strokeStyle = layer.stroke;
+      ctx.lineWidth = layer.strokeWidth || 1;
+      ctx.stroke();
+    } else if (layer.showLabel !== false) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = layer.strokeWidth || 1;
+      ctx.stroke();
+    }
   }
 
   drawRect(ctx, layer) {
@@ -319,12 +339,37 @@ export class CanvasRenderer {
   }
 
   drawText(ctx, layer) {
+    if (layer.textTransform) {
+      const {width, height, scaleX, scaleY} = layer.textTransform;
+      ctx.save();
+      ctx.translate(layer.x, layer.y);
+      ctx.scale(scaleX, scaleY);
+      this.drawText(ctx, {...layer, x:0, y:0, width, height, textTransform:null});
+      ctx.restore();
+      return;
+    }
+    const style = JSON.stringify([layer.fontSize, layer.fontFamily, layer.fontWeight, layer.textAlign, layer.lineHeight, layer.letterSpacing, layer.width, layer.height]);
+    if (layer.sourceGlyphs?.length && layer.text === layer.sourceText && style === layer.sourceTextStyle) {
+      ctx.fillStyle = layer.fill && layer.fill !== 'none' ? layer.fill : '#ffffff';
+      for (const glyph of layer.sourceGlyphs) {
+        if (!glyph.path) continue;
+        ctx.save();
+        ctx.translate(layer.x + glyph.x, layer.y + glyph.y);
+        ctx.rotate(glyph.rotation || 0);
+        // Figma glyphs are normalized to em units with an upward Y axis.
+        ctx.scale(glyph.fontSize, -glyph.fontSize);
+        ctx.fill(new Path2D(glyph.path));
+        ctx.restore();
+      }
+      return;
+    }
     ctx.font = `${layer.fontWeight || '400'} ${layer.fontSize || 16}px ${layer.fontFamily || 'Inter, sans-serif'}`;
     ctx.fillStyle = layer.fill && layer.fill !== 'none' ? layer.fill : '#ffffff';
     ctx.textAlign = layer.textAlign || 'left';
     ctx.textBaseline = 'top';
+    ctx.letterSpacing = `${Number(layer.letterSpacing) || 0}px`;
 
-    const lines = (layer.text || 'Text').split('\n');
+    const lines = this.wrapText(ctx, layer.text || 'Text', Math.max(1, layer.width));
     const lineHeight = (layer.fontSize || 16) * (layer.lineHeight || 1.3);
 
     let startX = layer.x;
@@ -334,6 +379,29 @@ export class CanvasRenderer {
     for (let i = 0; i < lines.length; i++) {
       ctx.fillText(lines[i], startX, layer.y + i * lineHeight);
     }
+  }
+
+  wrapText(ctx, text, maxWidth) {
+    const lines = [];
+    for (const paragraph of String(text).split(String.fromCharCode(10))) {
+      if (!paragraph) {
+        lines.push('');
+        continue;
+      }
+      const words = paragraph.split(/\s+/);
+      let current = '';
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (current && ctx.measureText(candidate).width > maxWidth) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = candidate;
+        }
+      }
+      lines.push(current);
+    }
+    return lines;
   }
 
   drawImageLayer(ctx, layer) {
@@ -348,13 +416,110 @@ export class CanvasRenderer {
     }
 
     if (img.complete && img.naturalWidth > 0) {
-      ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height);
+      const transform = layer.imageTransform;
+      const hasImageTransform = transform && (
+        transform.m00 !== 1 || transform.m01 !== 0 || transform.m02 !== 0 ||
+        transform.m10 !== 0 || transform.m11 !== 1 || transform.m12 !== 0
+      );
+      // In .fig, the paint matrix maps shape space back into image space. The
+      // renderer needs its inverse (image -> shape); applying it directly
+      // scales a square source independently on X/Y and visibly deforms it.
+      // Clip before applying the inverse so an offset/cropped image never
+      // bleeds outside its original frame.
+      if (hasImageTransform) {
+        const determinant = transform.m00 * transform.m11 - transform.m01 * transform.m10;
+        if (Math.abs(determinant) < 1e-8) return;
+        const a = transform.m11 / determinant;
+        const b = -transform.m10 / determinant;
+        const c = -transform.m01 / determinant;
+        const d = transform.m00 / determinant;
+        const e = (transform.m01 * transform.m12 - transform.m11 * transform.m02) / determinant;
+        const f = (transform.m10 * transform.m02 - transform.m00 * transform.m12) / determinant;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(layer.x, layer.y, layer.width, layer.height);
+        ctx.clip();
+        ctx.translate(layer.x, layer.y);
+        ctx.transform(
+          a, b, c, d,
+          e * layer.width,
+          f * layer.height
+        );
+        ctx.drawImage(img, 0, 0, layer.width, layer.height);
+        ctx.restore();
+        return;
+      }
+      if (layer.imageScaleMode === 'FILL') {
+        const sourceRatio = img.naturalWidth / img.naturalHeight;
+        const targetRatio = layer.width / layer.height;
+        let sx = 0;
+        let sy = 0;
+        let sw = img.naturalWidth;
+        let sh = img.naturalHeight;
+        if (sourceRatio > targetRatio) {
+          sw = img.naturalHeight * targetRatio;
+          sx = (img.naturalWidth - sw) / 2;
+        } else if (sourceRatio < targetRatio) {
+          sh = img.naturalWidth / targetRatio;
+          sy = (img.naturalHeight - sh) / 2;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, layer.x, layer.y, layer.width, layer.height);
+      } else {
+        ctx.drawImage(img, layer.x, layer.y, layer.width, layer.height);
+      }
     } else {
       ctx.fillStyle = '#2c2c2c';
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
       ctx.font = '12px Inter, sans-serif';
       ctx.fillStyle = '#888888';
       ctx.fillText('Loading Image...', layer.x + 10, layer.y + 20);
+    }
+  }
+
+  drawVectorLayer(ctx, layer) {
+    ctx.save();
+    ctx.translate(layer.x, layer.y);
+    ctx.scale(layer.vectorScaleX || 1, layer.vectorScaleY || 1);
+    for (const entry of layer.vectorPaths || []) {
+      if (!entry.path) continue;
+      const path = new Path2D(entry.path);
+      if (entry.fill && entry.fill !== 'none') {
+        ctx.fillStyle = entry.fill;
+        ctx.fill(path);
+      }
+    }
+    for (const entry of layer.vectorStrokePaths || []) {
+      if (!entry.path || !entry.stroke || entry.stroke === 'none') continue;
+      const path = new Path2D(entry.path);
+      // Figma strokeGeometry is an expanded, closed silhouette, not a
+      // centerline. Stroking it again doubles edges and hollows connectors.
+      if (entry.outlined) {
+        ctx.fillStyle = entry.stroke;
+        ctx.fill(path, entry.fillRule || 'nonzero');
+        continue;
+      }
+      ctx.strokeStyle = entry.stroke;
+      ctx.lineWidth = layer.strokeWidth || 1;
+      ctx.stroke(path);
+    }
+    ctx.restore();
+  }
+
+  clipToAncestors(ctx, layer) {
+    const ancestors = [];
+    const visited = new Set();
+    let parent = this.layerById?.get(layer.parentId);
+    while (parent && !visited.has(parent.id)) {
+      visited.add(parent.id);
+      if (parent.clipContent) ancestors.push(parent);
+      parent = this.layerById?.get(parent.parentId);
+    }
+    for (const frame of ancestors) {
+      ctx.beginPath();
+      const radius = frame.cornerRadius || 0;
+      if (radius > 0 && ctx.roundRect) ctx.roundRect(frame.x, frame.y, frame.width, frame.height, radius);
+      else ctx.rect(frame.x, frame.y, frame.width, frame.height);
+      ctx.clip();
     }
   }
 

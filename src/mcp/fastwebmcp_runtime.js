@@ -3,6 +3,7 @@
  * Conforme a https://mauricioperera.github.io/fastwebmcp/ y https://webmcp.com
  */
 
+import { validateSchemaInput } from './schema_validation.js';
 const TOOL_NAME_REGEX = /^[A-Za-z0-9_.-]{1,128}$/;
 
 export class FastWebMcpRuntime {
@@ -21,13 +22,17 @@ export class FastWebMcpRuntime {
       throw new Error(`[FastWebMCP] Nombre de herramienta inválido: "${spec.name}". Debe cumplir con ^[A-Za-z0-9_.-]{1,128}$`);
     }
 
+    const inputSchema = spec.inputSchema || { type: 'object', properties: {} };
     return {
       name: spec.name,
       title: spec.title || spec.name,
       description: spec.description || '',
-      inputSchema: spec.inputSchema || { type: 'object', properties: {} },
+      inputSchema,
       annotations: spec.annotations || {},
-      execute: spec.execute
+      execute: async (params = {}) => {
+        validateSchemaInput(params,inputSchema);
+        return spec.execute(params);
+      }
     };
   }
 

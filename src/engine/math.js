@@ -2,6 +2,8 @@
  * Utilidades matemáticas y geométricas para el motor Figma Clone KDD.
  */
 
+import { isLayerEffectivelyVisible } from './annotations.js';
+
 export function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
 }
@@ -56,8 +58,8 @@ export function getLayerBounds(layer) {
   };
 }
 
-export function isPointInLayer(px, py, layer) {
-  if (!layer.visible) return false;
+export function isPointInLayer(px, py, layer, layers = [layer]) {
+  if (!isLayerEffectivelyVisible(layer, layers)) return false;
 
   let localX = px;
   let localY = py;
@@ -159,7 +161,7 @@ export function findSnapGuides(draggingLayer, otherLayers, threshold = 6) {
   let snappedY = false;
 
   for (const other of otherLayers) {
-    if (other.id === draggingLayer.id || !other.visible) continue;
+    if (other.id === draggingLayer.id || !isLayerEffectivelyVisible(other, otherLayers)) continue;
     const ob = getLayerBounds(other);
 
     const otherX = [ob.x, ob.cx, ob.x + ob.width];

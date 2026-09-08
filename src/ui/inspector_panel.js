@@ -374,7 +374,7 @@ export class InspectorPanel {
     const btnExportSel = container.querySelector('#btn-export-selected-svg');
     if (btnExportSel) {
       btnExportSel.addEventListener('click', () => {
-        const svg = exportToSVG(selected);
+        const svg = exportToSVG(selected, null, {allLayers:this.store.state.layers});
         const blob = new Blob([svg], { type: 'image/svg+xml' });
         import('../engine/export.js').then(m => m.downloadFile('selection.svg', URL.createObjectURL(blob)));
       });
@@ -392,7 +392,7 @@ export class InspectorPanel {
     }
 
     const primary = selected[0];
-    const tailwindSnippet = layerToTailwind(primary);
+    const tailwindSnippet = layerToTailwind(primary, {allLayers:this.store.state.layers});
 
     content.innerHTML = `
       <div class="space-y-3">

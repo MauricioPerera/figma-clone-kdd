@@ -5,6 +5,7 @@
 
 import { CanvasRenderer } from './renderer.js';
 import { isPointInLayer, getLayerBounds, getCombinedBounds, findSnapGuides, clamp } from './math.js';
+import { isLayerEffectivelyVisible } from './annotations.js';
 
 export class CanvasEngine {
   constructor(canvas, store) {
@@ -96,7 +97,7 @@ export class CanvasEngine {
     if (e.button !== 0) return; // Solo botón izquierdo
 
     const world = this.screenToWorld(e.clientX, e.clientY);
-    const selectedLayers = this.store.getSelectedLayers();
+    const selectedLayers = this.store.getSelectedLayers().filter(layer => isLayerEffectivelyVisible(layer, this.store.state.layers));
 
     // 1. Verificar si hizo click en una manija del Gizmo
     if (selectedLayers.length > 0 && this.activeTool === 'select') {
@@ -242,7 +243,7 @@ export class CanvasEngine {
       if (selected.length > 0 && this.store.state.settings.snapGuides) {
         const primary = selected[0];
         const tempLayer = { ...primary, x: this.layerStartProps.get(primary.id).x + dx, y: this.layerStartProps.get(primary.id).y + dy };
-        const snap = findSnapGuides(tempLayer, this.store.state.layers);
+        const snap = findSnapGuides(tempLayer, this.store.state.layers.filter(layer => isLayerEffectivelyVisible(layer, this.store.state.layers)));
         if (snap.guides.length > 0) {
           dx += snap.deltaX;
           dy += snap.deltaY;
@@ -287,7 +288,7 @@ export class CanvasEngine {
 
       const matchedIds = [];
       for (const l of this.store.state.layers) {
-        if (!l.visible) continue;
+        if (!isLayerEffectivelyVisible(l, this.store.state.layers)) continue;
         const b = getLayerBounds(l);
         if (b.x + b.width >= w1.x && b.x <= w2.x && b.y + b.height >= w1.y && b.y <= w2.y) {
           matchedIds.push(l.id);
@@ -626,7 +627,7 @@ export class CanvasEngine {
     // Iterar en reversa (capa más superficial primero)
     for (let i = layers.length - 1; i >= 0; i--) {
       const l = layers[i];
-      if (isPointInLayer(wx, wy, l)) {
+      if (isLayerEffectivelyVisible(l, layers) && isPointInLayer(wx, wy, l)) {
         return l;
       }
     }

@@ -4,8 +4,52 @@
  */
 
 import { getCombinedBounds, getLayerBounds } from './math.js';
+import { isLayerEffectivelyVisible, isAnnotationLayer } from './annotations.js';
 
-export function exportToSVG(layers, customBounds = null) {
+export function filterDesignLayers(layers, { includeAnnotations = false, allLayers = layers } = {}) {
+  return (layers || []).filter(layer => layer && isLayerEffectivelyVisible(layer, allLayers || [])
+    && (includeAnnotations || !isAnnotationLayer(layer, allLayers || [])));
+}
+
+function svgVector(layer) {
+  const paths = (layer.vectorPaths || []).filter(entry => entry.path).map(entry =>
+    `<path d="${escapeXml(entry.path)}" fill="${escapeXml(entry.fill || 'none')}" fill-rule="${entry.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'}" />`
+  );
+  for (const entry of layer.vectorStrokePaths || []) {
+    if (!entry.path || !entry.stroke || entry.stroke === 'none') continue;
+    const paint = escapeXml(entry.stroke);
+    const attributes = entry.outlined
+      ? `fill="${paint}" fill-rule="${entry.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'}"`
+      : `fill="none" stroke="${paint}" stroke-width="${layer.strokeWidth || 1}"`;
+    paths.push(`<path d="${escapeXml(entry.path)}" ${attributes} />`);
+  }
+  if (!paths.length) throw new Error(`Vector ${layer.id || layer.name} has no exportable path geometry.`);
+  return `<g transform="translate(${layer.x} ${layer.y}) scale(${layer.vectorScaleX || 1} ${layer.vectorScaleY || 1})">${paths.join('')}</g>`;
+}
+
+function svgImage(layer, index) {
+  if (!layer.src) throw new Error(`Image ${layer.id || layer.name} has no source.`);
+  if (!/^(data:image\/|https?:\/\/|blob:|\.?\.?\/)/i.test(layer.src)) throw new Error('Unsupported image source URL.');
+  const source = escapeXml(layer.src);
+  const clipId = `image-clip-${index}-${encodeURIComponent(layer.id || 'layer')}`;
+  const clip = `<defs><clipPath id="${clipId}"><rect width="${layer.width}" height="${layer.height}" rx="${layer.cornerRadius || 0}" /></clipPath></defs>`;
+  const t = layer.imageTransform;
+  const transformed = t && (t.m00 !== 1 || t.m01 !== 0 || t.m02 !== 0 || t.m10 !== 0 || t.m11 !== 1 || t.m12 !== 0);
+  if (!transformed) {
+    const aspect = layer.imageScaleMode === 'FILL' ? 'xMidYMid slice' : 'none';
+    return `<g transform="translate(${layer.x} ${layer.y})">${clip}<image width="${layer.width}" height="${layer.height}" href="${source}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})" /></g>`;
+  }
+  const determinant = t.m00 * t.m11 - t.m01 * t.m10;
+  if (!Number.isFinite(determinant) || Math.abs(determinant) < 1e-8) throw new Error('Image paint transform is singular or invalid.');
+  const matrix = [t.m11 / determinant, -t.m10 / determinant, -t.m01 / determinant, t.m00 / determinant,
+    (t.m01 * t.m12 - t.m11 * t.m02) / determinant * layer.width,
+    (t.m10 * t.m02 - t.m00 * t.m12) / determinant * layer.height];
+  if (!matrix.every(Number.isFinite)) throw new Error('Image paint transform is invalid.');
+  return `<g transform="translate(${layer.x} ${layer.y})">${clip}<g clip-path="url(#${clipId})"><image width="${layer.width}" height="${layer.height}" href="${source}" preserveAspectRatio="none" transform="matrix(${matrix.join(' ')})" /></g></g>`;
+}
+
+export function exportToSVG(layers, customBounds = null, options = {}) {
+  layers = filterDesignLayers(layers, options);
   const bounds = customBounds || getCombinedBounds(layers) || { x: 0, y: 0, width: 800, height: 600 };
   const w = Math.max(10, Math.round(bounds.width));
   const h = Math.max(10, Math.round(bounds.height));
@@ -17,14 +61,19 @@ export function exportToSVG(layers, customBounds = null) {
   svg += `    </filter>\n`;
   svg += `  </defs>\n`;
 
-  for (const layer of (layers || [])) {
-    if (!layer || !layer.visible) continue;
+  for (const [index, layer] of (layers || []).entries()) {
     const transform = layer.rotation ? ` transform="rotate(${layer.rotation}, ${layer.x + layer.width / 2}, ${layer.y + layer.height / 2})"` : '';
     const opacity = layer.opacity !== undefined && layer.opacity < 1 ? ` opacity="${layer.opacity}"` : '';
     const shadowAttr = layer.shadow ? ` filter="url(#drop-shadow)"` : '';
     const strokeAttr = layer.stroke && layer.stroke !== 'none' ? ` stroke="${layer.stroke}" stroke-width="${layer.strokeWidth || 1}"` : '';
 
     switch (layer.type) {
+      case 'image':
+        svg += `<g${transform}${opacity}${shadowAttr}>${svgImage(layer, index)}</g>\n`;
+        break;
+      case 'vector':
+        svg += `<g${transform}${opacity}${shadowAttr}>${svgVector(layer)}</g>\n`;
+        break;
       case 'frame':
       case 'rect': {
         const rx = layer.cornerRadius ? ` rx="${layer.cornerRadius}" ry="${layer.cornerRadius}"` : '';
@@ -63,8 +112,8 @@ export function exportToSVG(layers, customBounds = null) {
         const points = [];
         for (let i = 0; i < 10; i++) {
           const angle = (i * Math.PI) / 5 - Math.PI / 2;
-          const r = i % 2 === 0 ? rx : rx * 0.45;
-          points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+          const radius = i % 2 === 0 ? 1 : 0.45;
+          points.push(`${cx + rx * radius * Math.cos(angle)},${cy + ry * radius * Math.sin(angle)}`);
         }
         const fill = layer.fill && layer.fill !== 'none' ? ` fill="${layer.fill}"` : ' fill="none"';
         svg += `  <polygon points="${points.join(' ')}"${fill}${strokeAttr}${opacity}${shadowAttr}${transform} />\n`;
@@ -76,10 +125,14 @@ export function exportToSVG(layers, customBounds = null) {
         const y1 = layer.y;
         const x2 = layer.x + layer.width;
         const y2 = layer.y + layer.height;
-        const strokeColor = layer.stroke !== 'none' ? layer.stroke : (layer.fill !== 'none' ? layer.fill : '#ffffff');
-        svg += `  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${strokeColor}" stroke-width="${layer.strokeWidth || 2}" stroke-linecap="round"${opacity} />\n`;
+        const strokeColor = layer.stroke && layer.stroke !== 'none' ? layer.stroke : (layer.fill && layer.fill !== 'none' ? layer.fill : '#ffffff');
+        const marker = layer.type === 'arrow' ? ` marker-end="url(#arrow-${index})"` : '';
+        if (marker) svg += `<defs><marker id="arrow-${index}" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L10 5 L0 10 Z" fill="${escapeXml(strokeColor)}" /></marker></defs>`;
+        svg += `  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${strokeColor}" stroke-width="${layer.strokeWidth || 2}" stroke-linecap="round"${marker}${opacity}${transform} />\n`;
         break;
       }
+      default:
+        throw new Error(`Unsupported SVG layer type: ${layer.type}`);
       case 'text': {
         const fill = layer.fill && layer.fill !== 'none' ? ` fill="${layer.fill}"` : ' fill="#ffffff"';
         const fontSize = ` font-size="${layer.fontSize || 16}"`;
@@ -106,7 +159,8 @@ export function exportToSVG(layers, customBounds = null) {
   return svg;
 }
 
-export function exportToPNG(canvas, layers, scale = 2) {
+export function exportToPNG(canvas, layers, scale = 2, options = {}) {
+  layers = filterDesignLayers(layers, options);
   const bounds = getCombinedBounds(layers) || { x: 0, y: 0, width: canvas.width, height: canvas.height };
   const offscreen = document.createElement('canvas');
   offscreen.width = Math.max(1, Math.round(bounds.width * scale));
@@ -146,15 +200,20 @@ export function exportToPNG(canvas, layers, scale = 2) {
   downloadFile('design.png', dataUrl, true);
 }
 
-export function exportToJSON(store) {
-  const doc = {
+export function serializeProject(store) {
+  return structuredClone({
     version: '1.0.0',
     title: store.state.title,
     exportedAt: new Date().toISOString(),
     viewport: store.state.viewport,
     settings: store.state.settings,
-    layers: store.state.layers
-  };
+    layers: store.state.layers,
+    designContract: store.state.designContract || store.state.designContractProposal || null
+  });
+}
+
+export function exportToJSON(store) {
+  const doc = serializeProject(store);
   const jsonStr = JSON.stringify(doc, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -174,8 +233,10 @@ export function importFromJSON(jsonString, store) {
   }
 }
 
-export function layerToTailwind(layer) {
+export function layerToTailwind(layer, options = {}) {
   if (!layer) return '<!-- Selecciona un elemento para ver su código Tailwind -->';
+  if (filterDesignLayers([layer], options).length === 0) return '';
+  if (layer.type === 'image' || layer.type === 'vector') return exportToSVG([layer], null, options);
 
   const classes = [];
 

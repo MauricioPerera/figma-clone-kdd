@@ -76,18 +76,19 @@
     import { LayersPanel } from './src/ui/layers_panel.js';
     import { InspectorPanel } from './src/ui/inspector_panel.js';
     import { ShortcutsModal } from './src/ui/shortcuts_modal.js';
-    import { WebMcpDrawer } from './src/ui/webmcp_drawer.js';
+    import { WebMcpDrawer } from './src/ui/webmcp_drawer.js?v=protection-forms-1';
     import { TemplatesModal } from './src/ui/templates_modal.js';
-    import { registerFigmaWebMcpTools } from './src/mcp/webmcp_tools.js';
+    import { registerFigmaWebMcpTools } from './src/mcp/webmcp_tools.js?v=tool-audit-2';
     import { UI_TEMPLATES } from './src/engine/templates.js';
 
     // 1. Instanciar Store Central
     const store = new StateStore();
+    await store.ready;
 
     // 2. Si el lienzo está vacío (primera visita), sembrar una plantilla de bienvenida
     if (store.state.layers.length === 0) {
       const welcomeLayers = UI_TEMPLATES.saas_hero.create(160, 100);
-      store.state.layers.push(...welcomeLayers);
+      store.addLayers(welcomeLayers);
       store.saveToStorage();
     }
 

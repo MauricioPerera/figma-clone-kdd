@@ -3,6 +3,8 @@
  */
 
 import { UI_TEMPLATES } from '../engine/templates.js';
+import { extractDesignRules } from '../engine/design_rules.js';
+import { isAnnotationLayer, isLayerEffectivelyVisible } from '../engine/annotations.js';
 
 export class LayersPanel {
   constructor(container, store) {
@@ -39,6 +41,16 @@ export class LayersPanel {
           </button>
         </div>
 
+        <div class="px-2 py-1.5 border-b border-[#383838] flex gap-2">
+          <button id="btn-create-postit" class="px-2 py-1 rounded bg-amber-300 text-black" title="Crear anotación, excluida del diseño exportado">+ Nota</button>
+          <button id="btn-hide-postits" class="px-2 py-1 rounded hover:bg-[#383838]" title="Ocultar notas sin eliminarlas">Ocultar notas</button>
+          <button id="btn-restore-postits" class="px-2 py-1 rounded hover:bg-[#383838]" title="Restaurar notas">Mostrar</button>
+        </div>
+
+        <div class="px-2 py-1.5 border-b border-[#383838] flex gap-2">
+          <button id="btn-protect-design" title="Revisar y activar reglas de estilo de la selección o del documento">Proteger estilo</button>
+          <button id="btn-release-design" title="Desactivar protección con aprobación humana">Liberar reglas</button>
+        </div>
         <!-- Contenedor de la Lista de Capas -->
         <div id="layers-list-container" class="flex-1 overflow-y-auto overflow-x-hidden p-1 space-y-0.5 custom-scrollbar">
           <!-- Se inyecta dinámicamente -->
@@ -101,6 +113,17 @@ export class LayersPanel {
 
   bindEvents() {
     const { container } = this;
+    container.querySelector('#btn-protect-design').addEventListener('click', () => {
+      const ids = this.store.state.selectedIds;
+      const imported = !this.store.state.designContract && this.store.state.designContractProposal;
+      const proposal = imported || extractDesignRules(this.store.state.layers, ids.length ? {ids} : {});
+      if (window.confirm(`Activar ${proposal.rules.length} reglas de estilo ${imported ? 'importadas (requieren tu aprobación)' : 'observadas'}? Los cambios incompatibles serán rechazados. No incluye una garantía de composición o fidelidad visual.`)) {
+        try { this.store.activateDesignContract(proposal); } catch (error) { window.alert(error.message); }
+      }
+    });
+    container.querySelector('#btn-release-design').addEventListener('click', () => {
+      if (window.confirm('Desactivar el contrato de diseño y permitir cambios de estilo?')) this.store.releaseDesignContract();
+    });
 
     // Tabs
     const tabLayers = container.querySelector('#tab-layers');
@@ -136,6 +159,16 @@ export class LayersPanel {
     });
 
     // Borrar seleccionadas
+    container.querySelector('#btn-create-postit').addEventListener('click', () => {
+      const viewport = this.store.state.viewport;
+      this.store.createPostit({text:'Nueva nota',x:(80-viewport.panX)/viewport.zoom,y:(80-viewport.panY)/viewport.zoom});
+    });
+    const setNotesHidden = hidden => {
+      const ids = this.store.state.layers.filter(layer => layer.annotationKind === 'sticky').map(layer => layer.id);
+      if (ids.length) this.store.setLayersSoftDeleted(ids,hidden);
+    };
+    container.querySelector('#btn-hide-postits').addEventListener('click', () => setNotesHidden(true));
+    container.querySelector('#btn-restore-postits').addEventListener('click', () => setNotesHidden(false));
     container.querySelector('#btn-delete-selected').addEventListener('click', () => {
       this.store.deleteLayers();
     });
@@ -218,16 +251,19 @@ export class LayersPanel {
         isSelected ? 'bg-[#0d99ff]/20 text-white font-medium border-l-2 border-[#0d99ff]' : 'hover:bg-[#2c2c2c] text-gray-300'
       }`;
 
-      const icon = this.getLayerIcon(layer.type);
+      const icon = layer.annotationKind === 'sticky' ? '📝' : this.getLayerIcon(layer.type);
+      const annotationBadge = isAnnotationLayer(layer, layers) ? '<span class="text-[9px] text-amber-300">Nota</span>' : '';
+      if (!isLayerEffectivelyVisible(layer, layers)) row.classList.add('opacity-50');
       row.innerHTML = `
         <div class="flex items-center space-x-2 truncate flex-1 min-w-0">
           <span class="text-gray-400 font-mono text-[11px]">${icon}</span>
           <span class="truncate text-[11px] layer-name">${escapeHtml(layer.name)}</span>
+          ${annotationBadge}
         </div>
         <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <!-- Visibilidad -->
-          <button class="btn-vis w-5 h-5 flex items-center justify-center rounded hover:bg-[#383838] text-gray-400 hover:text-white" title="${layer.visible ? 'Ocultar' : 'Mostrar'}">
-            ${layer.visible ? '👁' : '🚫'}
+          <button class="btn-vis w-5 h-5 flex items-center justify-center rounded hover:bg-[#383838] text-gray-400 hover:text-white" title="${layer.visible !== false && !layer.softDeleted ? 'Ocultar' : 'Mostrar'}">
+            ${layer.visible !== false && !layer.softDeleted ? '👁' : '🚫'}
           </button>
           <!-- Bloqueo -->
           <button class="btn-lock w-5 h-5 flex items-center justify-center rounded hover:bg-[#383838] text-gray-400 hover:text-white" title="${layer.locked ? 'Desbloquear' : 'Bloquear'}">
@@ -268,7 +304,9 @@ export class LayersPanel {
       // Toggle visibilidad
       row.querySelector('.btn-vis').addEventListener('click', (e) => {
         e.stopPropagation();
-        this.store.updateLayer(layer.id, { visible: !layer.visible });
+        if (layer.softDeleted) this.store.setLayersSoftDeleted([layer.id],false);
+        else if (layer.visible === false) this.store.updateLayer(layer.id,{visible:true});
+        else this.store.setLayersSoftDeleted([layer.id],true);
       });
 
       // Toggle bloqueo
