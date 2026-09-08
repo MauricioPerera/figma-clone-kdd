@@ -291,6 +291,8 @@ export class Toolbar {
   }
 
   updateState() {
+    const titleInput = this.container.querySelector('#doc-title-input');
+    if (titleInput && document.activeElement !== titleInput) titleInput.value = this.store.state.title;
     const undoBtn = this.container.querySelector('#btn-undo');
     const redoBtn = this.container.querySelector('#btn-redo');
     const zoomText = this.container.querySelector('#zoom-text');

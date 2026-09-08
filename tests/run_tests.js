@@ -9,6 +9,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const testFiles = [
+  'design_rules.test.js',
+  'design_rules_integration.test.js',
+  'project_roundtrip.test.js',
+  'project_persistence.test.js',
+  'all_tools_coverage.test.js',
+  'schema_validation.test.js',
+  'template_identity.test.js',
+  'annotation_export.test.js',
+  'svg_imported_export.test.js',
+  'fig_glyphs.test.js',
+  'fig_import.test.js',
+  'figjam_nodes.test.js',
   'canvas_engine.test.js',
   'state_store.test.js',
   'webmcp_tools.test.js',

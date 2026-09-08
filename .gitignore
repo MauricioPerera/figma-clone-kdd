@@ -3,3 +3,8 @@ node_modules/
 *.log
 .vscode/
 .idea/
+imports/*.figma.json
+imports/assets/
+imports/*.manifest.json
+imports/*.fig
+imports/*.jam

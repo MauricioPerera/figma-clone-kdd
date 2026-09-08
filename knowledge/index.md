@@ -19,6 +19,7 @@ Bienvenido al repositorio de conocimiento de **Figma Clone KDD**, estructurado s
 - [document_schema.md](data_models/document_schema.md): Esquema general de documento, páginas, viewport y metadatos exportables.
 
 ## 📜 Contratos de Tarea (CCDD + OKF)
+- [task_project_roundtrip.md](contracts/task_project_roundtrip.md): Roundtrip y conservación segura de contratos de diseño.
 - [task_canvas_engine.md](contracts/task_canvas_engine.md): Motor gráfico, pan/zoom, interacción y renderizado.
 - [task_state_store.md](contracts/task_state_store.md): Manejo del estado, mutaciones atómicas y pila de historial.
 - [task_inspector_sync.md](contracts/task_inspector_sync.md): Sincronización bidireccional entre la selección y los paneles de propiedades.

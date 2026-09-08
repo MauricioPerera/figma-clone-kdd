@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "node tests/run_tests.js",
+    "import:fig": "node scripts/import_fig_project.js",
+    "verify:fig-import": "node scripts/verify_fig_import.js",
     "validate:contracts": "python scripts/validate_contracts.py",
     "validate:okf": "python scripts/validate_okf.py",
     "start": "python -m http.server 8080"
@@ -23,5 +25,9 @@
     "htmx"
   ],
   "author": "Mauricio Perera & AI Pair",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "openfig-core": "^0.4.1"
+  }
 }
